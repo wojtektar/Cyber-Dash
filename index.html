@@ -1,0 +1,1776 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CYBER_RUNNER // CYBER_OPERATIONS_EDITION</title>
+<style>
+        body {
+            margin: 0; overflow: hidden;
+            background-color: #020106;
+            font-family: 'Courier New', Courier, monospace;
+            user-select: none;
+            /* KLUCZOWE DLA MOBILE: Blokuje odświeżanie i zoomowanie ekranu palcem */
+            touch-action: none; 
+        }
+        #canvas-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
+
+        /* INTERFEJS EKRANÓW */
+        .menu-overlay {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(8, 4, 28, 0.85); padding: 40px;
+            border: 2px solid #00ffcc; box-shadow: 0 0 40px rgba(0, 255, 204, 0.4), inset 0 0 30px rgba(0,255,254,0.1);
+            border-radius: 20px; z-index: 100;
+            width: 560px; text-align: center; color: #fff;
+            backdrop-filter: blur(15px);
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+        }
+
+        .main-title { 
+            font-size: 48px; font-weight: 900; color: #ffff00; 
+            text-shadow: 4px 4px 0px #ff007f, 0 0 25px rgba(255, 255, 0, 0.6); 
+            margin-bottom: 25px; letter-spacing: 5px;
+            animation: pulseTitle 1.5s infinite alternate;
+        }
+
+        .submenu-title { color: #00ffcc; font-size: 18px; font-weight: bold; text-shadow: 0 0 10px #00ffcc; margin: 15px 0 5px 0; letter-spacing: 2px; }
+
+        /* CENTRALNY PRZYCISK PLAY */
+        .gd-play-btn {
+            width: 140px; height: 140px;
+            background: linear-gradient(135deg, #00ff66 0%, #009933 100%);
+            border: 4px solid #fff; border-radius: 50%;
+            cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+            box-shadow: 0 10px 30px rgba(0, 255, 102, 0.6), 0 0 20px #00ff66;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); margin: 20px 0;
+        }
+        .gd-play-btn:hover {
+            transform: scale(1.1) rotate(10deg);
+            box-shadow: 0 15px 40px rgba(0, 255, 102, 0.8), 0 0 30px #00ff66, inset 0 0 15px rgba(255,255,255,0.5);
+        }
+        .gd-play-btn svg { width: 70px; height: 70px; fill: #fff; margin-left: 10px; filter: drop-shadow(0 0 5px rgba(255,255,255,0.8)); }
+
+        /* OKRĄGŁE PRZYCISKI DOLNE */
+        .gd-buttons-row { display: flex; justify-content: center; gap: 20px; margin-top: 25px; }
+        .gd-sub-btn {
+            width: 65px; height: 65px; border-radius: 18px; border: 2px solid #fff;
+            background: linear-gradient(135deg, #ff007f 0%, #99004c 100%);
+            box-shadow: 0 8px 20px rgba(255, 0, 127, 0.5), 0 0 15px #ff007f;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s ease;
+        }
+        .gd-sub-btn:hover { transform: translateY(-5px) scale(1.05); box-shadow: 0 12px 25px rgba(255, 0, 127, 0.7), 0 0 20px #ff007f; }
+        .gd-sub-btn svg { width: 34px; height: 34px; fill: #fff; }
+        .gd-sub-btn.blue-btn { background: linear-gradient(135deg, #00ffff 0%, #008080 100%); box-shadow: 0 8px 20px rgba(0, 255, 255, 0.4), 0 0 15px #00ffff;}
+        .gd-sub-btn.blue-btn:hover { box-shadow: 0 12px 25px rgba(0, 255, 255, 0.7), 0 0 20px #00ffff; }
+        .gd-sub-btn.gray-btn { background: linear-gradient(135deg, #aaaaaa 0%, #555555 100%); box-shadow: 0 8px 20px rgba(170, 170, 170, 0.4), 0 0 15px #aaaaaa;}
+        .gd-sub-btn.gray-btn:hover { box-shadow: 0 12px 25px rgba(170, 170, 170, 0.7), 0 0 20px #aaaaaa; }
+
+        /* SUWAKI */
+        input[type=range] {
+            -webkit-appearance: none; width: 100%; background: transparent; margin: 15px 0;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 24px; width: 24px; border-radius: 50%;
+            background: #00ffcc; cursor: pointer; margin-top: -8px; box-shadow: 0 0 10px #00ffcc;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 8px; cursor: pointer; background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px; border: 1px solid #00ffcc;
+        }
+
+        /* SEKCJA WYBORU POZIOMU */
+        .level-carousel {
+            display: flex; align-items: center; justify-content: space-between;
+            margin: 25px 0; background: rgba(0,0,0,0.7); padding: 25px 20px;
+            border-radius: 15px; border: 2px solid #ff007f; box-shadow: inset 0 0 20px rgba(255,0,127,0.2), 0 0 15px rgba(255,0,127,0.3);
+        }
+        .carousel-arrow {
+            background: #ff007f; color: white; border: 2px solid white;
+            font-size: 24px; font-weight: bold; width: 50px; height: 50px;
+            border-radius: 50%; cursor: pointer; display: flex; align-items: center;
+            justify-content: center; transition: all 0.2s; box-shadow: 0 0 10px #ff007f;
+        }
+        .carousel-arrow:hover { transform: scale(1.15); background: #00ffcc; color: #000; border-color: #000; box-shadow: 0 0 20px #00ffcc; }
+
+        .level-card { flex-grow: 1; padding: 0 15px; }
+        .level-name { font-size: 24px; font-weight: 900; color: #ffff00; margin-bottom: 10px; text-shadow: 0 0 10px #ffff00; }
+        .level-difficulty { font-size: 14px; font-weight: bold; padding: 6px 14px; border-radius: 10px; display: inline-block; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px;}
+        
+        .diff-easy { background: #00ff66; color: black; box-shadow: 0 0 8px #00ff66; }
+        .diff-normal { background: #00ffff; color: black; box-shadow: 0 0 8px #00ffff;}
+        .diff-hard { background: #ffaa00; color: black; box-shadow: 0 0 8px #ffaa00;}
+        .diff-insane { background: #ff007f; color: white; box-shadow: 0 0 8px #ff007f;}
+        .diff-demon { background: #990000; color: white; border: 1px solid red; box-shadow: 0 0 12px red;}
+        .diff-truedemon { 
+            background: #000000; color: #ff0055; border: 2px solid #ff0055; 
+            box-shadow: 0 0 20px #ff0055; font-weight: 900; 
+            animation: textGlitch 0.3s infinite alternate; 
+        }
+
+        .level-stats { font-size: 14px; color: #ddd; line-height: 1.6; text-align: left; background: rgba(255,255,255,0.05); padding: 12px; border-radius: 8px; min-height: 60px; border: 1px solid rgba(255,255,255,0.1);}
+
+        /* PRZYCISKI UNIWERSALNE */
+        .btn {
+            background: rgba(0, 0, 0, 0.5); border: 2px solid #00ffcc; color: #00ffcc;
+            padding: 12px 20px; cursor: pointer; font-family: monospace; font-weight: bold;
+            transition: all 0.2s; border-radius: 8px; margin: 5px; font-size: 15px; letter-spacing: 1px;
+        }
+        .btn:hover:not(:disabled) { background: #00ffcc; color: #000; box-shadow: 0 0 20px #00ffcc; transform: translateY(-2px); }
+        .btn:disabled { border-color: #444; color: #666; cursor: not-allowed; }
+        .btn-start-lvl { background: #00ff66; color: #000; border-color: #fff; font-size: 20px; padding: 15px 30px; width: 100%; border-radius: 12px; margin-top: 15px; box-shadow: 0 0 15px #00ff66; font-weight: 900; }
+        .btn-start-lvl:hover { background: #fff; color: #000; box-shadow: 0 0 25px #fff; transform: scale(1.02); }
+        .btn-pink { border-color: #ff007f; color: #ff007f; }
+        .btn-pink:hover:not(:disabled) { background: #ff007f; color: #fff; box-shadow: 0 0 20px #ff007f; }
+
+        /* HUD GRY */
+        #ui {
+            position: absolute; top: 20px; left: 20px;
+            color: #00ffcc; font-size: 18px; font-weight: bold;
+            text-shadow: 0 0 10px #00ffcc; z-index: 10; display: none;
+            background: rgba(8, 4, 28, 0.85); padding: 20px; border-radius: 10px;
+            border: 2px solid rgba(0,255,204,0.4); min-width: 200px; backdrop-filter: blur(5px);
+        }
+        .ui-line { margin-bottom: 8px; letter-spacing: 1px;}
+        #score-val { color: #ff007f; text-shadow: 0 0 10px #ff007f; }
+        #coin-val, .cc-color { color: #00ff66; text-shadow: 0 0 10px #00ff66; }
+        #shield-ui { color: #00ffff; text-shadow: 0 0 10px #00ffff; }
+
+        /* ALERTY I WIRUSY */
+        #alert-overlay {
+            position: absolute; top: 20%; left: 50%; transform: translate(-50%, -50%);
+            color: #ff0033; font-size: 40px; font-weight: 900; letter-spacing: 6px;
+            text-align: center; text-shadow: 0 0 25px #ff0033; display: none;
+            pointer-events: none; z-index: 10; background: rgba(0,0,0,0.85);
+            padding: 15px 40px; border-radius: 8px; border: 3px solid #ff0033;
+        }
+        #invaders-container { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 20; }
+        .invader { position: absolute; width: 65px; height: 55px; cursor: crosshair; pointer-events: auto; animation: glitch 0.3s infinite alternate; }
+
+        /* SKLEP KOSMETYCZNY */
+        .shop-box { max-height: 280px; overflow-y: auto; background: rgba(0,0,0,0.6); padding: 15px; border-radius: 10px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.1); }
+        .shop-item { display: flex; justify-content: space-between; align-items: center; margin: 10px 0; font-size: 14px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 6px; transition: background 0.2s;}
+        .shop-item:hover { background: rgba(255,255,255,0.1); }
+        .skin-preview { display: inline-flex; align-items: center; gap: 10px; font-weight: bold;}
+        .skin-color-box { width: 22px; height: 22px; border-radius: 4px; border: 2px solid #fff; box-shadow: 0 0 8px rgba(255,255,255,0.5);}
+        .btn.active-skin { border-color: #ffff00; color: #ffff00; cursor: default; box-shadow: 0 0 10px #ffff00; background: rgba(255,255,0,0.1);}
+
+        @keyframes pulseTitle {
+            0% { transform: scale(1) rotate(-1deg); text-shadow: 4px 4px 0px #ff007f, 0 0 25px rgba(255, 255, 0, 0.6); }
+            100% { transform: scale(1.03) rotate(1deg); text-shadow: -4px 4px 0px #00ffff, 0 0 35px rgba(255, 255, 0, 0.9); }
+        }
+        @keyframes glitch {
+            0% { filter: hue-rotate(0deg) drop-shadow(0 0 5px #ff0055); transform: scale(1); }
+            100% { filter: hue-rotate(90deg) drop-shadow(0 0 20px #00ffff); transform: scale(1.1); }
+        }
+        @keyframes textGlitch {
+            0% { text-shadow: 3px 0 0 #00ffff, -3px 0 0 #ff00ff; transform: scale(1) skewX(0deg); }
+            100% { text-shadow: -3px 0 0 #00ffff, 3px 0 0 #ff00ff; transform: scale(1.05) skewX(-5deg); }
+        }
+
+        /* ═══════════════════════════════════════════
+           EKRAN ŁADOWANIA SEKTORA
+        ═══════════════════════════════════════════ */
+        #sector-loading {
+            display: none; position: fixed; inset: 0; z-index: 200;
+            background: #000; flex-direction: column;
+            align-items: center; justify-content: center;
+        }
+        #sector-loading.active { display: flex; }
+        .sl-top-line {
+            font-size: 11px; letter-spacing: 6px; color: #ff007f;
+            text-shadow: 0 0 8px #ff007f; margin-bottom: 30px;
+            animation: slBlink 0.8s infinite alternate;
+        }
+        .sl-sector-name {
+            font-size: 52px; font-weight: 900; color: #ffff00; letter-spacing: 8px;
+            text-shadow: 4px 4px 0 #ff007f, 0 0 40px rgba(255,255,0,0.7);
+            margin-bottom: 10px;
+        }
+        .sl-level-tag {
+            font-size: 14px; color: #00ffcc; letter-spacing: 4px;
+            text-shadow: 0 0 10px #00ffcc; margin-bottom: 50px;
+        }
+        .sl-bar-wrap {
+            width: 400px; height: 6px; background: rgba(255,255,255,0.1);
+            border-radius: 3px; overflow: hidden; margin-bottom: 20px;
+        }
+        .sl-bar-fill {
+            height: 100%; width: 0%; border-radius: 3px;
+            background: linear-gradient(90deg, #ff007f, #00ffcc);
+            box-shadow: 0 0 12px #00ffcc;
+            transition: width 0.08s linear;
+        }
+        .sl-log {
+            font-size: 12px; color: #aaa; letter-spacing: 2px; min-height: 20px;
+            text-align: center; max-width: 500px;
+        }
+        .sl-diff-badge {
+            font-size: 13px; font-weight: bold; padding: 5px 18px; border-radius: 8px;
+            margin-top: 30px; letter-spacing: 2px; text-transform: uppercase;
+        }
+        @keyframes slBlink { 0%{opacity:0.4} 100%{opacity:1} }
+
+        /* ═══════════════════════════════════════════
+           PARALAKSA — warstwy tła
+        ═══════════════════════════════════════════ */
+        #parallax-container {
+            position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+        }
+        .px-layer { position: absolute; inset: 0; }
+
+        /* ═══════════════════════════════════════════
+           SYSTEM RANG
+        ═══════════════════════════════════════════ */
+        .rank-badge {
+            display: inline-block; font-size: 32px; font-weight: 900;
+            padding: 6px 20px; border-radius: 10px; letter-spacing: 3px;
+            margin: 8px 0; border: 3px solid currentColor;
+        }
+        .rank-D  { color: #888; border-color: #888; text-shadow: 0 0 8px #888; }
+        .rank-C  { color: #00ffcc; border-color: #00ffcc; text-shadow: 0 0 10px #00ffcc; }
+        .rank-B  { color: #00ff66; border-color: #00ff66; text-shadow: 0 0 12px #00ff66; }
+        .rank-A  { color: #ffaa00; border-color: #ffaa00; text-shadow: 0 0 14px #ffaa00; }
+        .rank-S  { color: #ff007f; border-color: #ff007f; text-shadow: 0 0 18px #ff007f; animation: rankPulse 1s infinite alternate; }
+        .rank-SS { color: #ffff00; border-color: #ffff00; text-shadow: 0 0 25px #ffff00, 4px 4px 0 #ff007f; animation: rankPulse 0.5s infinite alternate; font-size: 38px; }
+        @keyframes rankPulse { from{transform:scale(1)} to{transform:scale(1.06)} }
+
+        /* ═══════════════════════════════════════════
+           ACHIEVEMENTY — toast popup
+        ═══════════════════════════════════════════ */
+        #achievement-toast {
+            position: fixed; top: 20px; right: -420px; z-index: 300;
+            background: rgba(8,4,28,0.97); border: 2px solid #ffff00;
+            box-shadow: 0 0 30px rgba(255,255,0,0.5); border-radius: 12px;
+            padding: 14px 20px; width: 360px;
+            transition: right 0.4s cubic-bezier(0.22,1,0.36,1);
+            display: flex; align-items: center; gap: 14px;
+        }
+        #achievement-toast.show { right: 20px; }
+        .ach-icon { font-size: 30px; flex-shrink: 0; }
+        .ach-text-wrap { flex: 1; }
+        .ach-title { font-size: 11px; color: #ffff00; letter-spacing: 2px; margin-bottom: 3px; }
+        .ach-name  { font-size: 16px; font-weight: 900; color: #fff; }
+        .ach-desc  { font-size: 12px; color: #aaa; margin-top: 2px; }
+
+        /* ═══════════════════════════════════════════
+           DZIENNE WYZWANIE — badge w menu
+        ═══════════════════════════════════════════ */
+        #daily-badge {
+            background: linear-gradient(135deg, #ff6600, #cc3300);
+            border: 2px solid #ff9944; border-radius: 10px;
+            padding: 10px 16px; margin: 10px 0; font-size: 13px;
+            box-shadow: 0 0 15px rgba(255,100,0,0.5); cursor: pointer;
+            transition: all 0.2s; text-align: left;
+        }
+        #daily-badge:hover { transform: translateY(-2px); box-shadow: 0 0 25px rgba(255,100,0,0.7); }
+        .daily-title { font-size: 10px; letter-spacing: 3px; color: #ffcc88; margin-bottom: 4px; }
+        .daily-desc  { font-weight: bold; color: #fff; font-size: 14px; }
+        .daily-reward { color: #ffcc00; font-size: 12px; margin-top: 4px; }
+        .daily-done { opacity: 0.5; cursor: default; }
+
+        /* ═══════════════════════════════════════════
+           HIT-STOP overlay
+        ═══════════════════════════════════════════ */
+        #hitstop-overlay {
+            display: none; position: fixed; inset: 0; z-index: 150;
+            background: rgba(255,0,85,0.18);
+            pointer-events: none;
+        }
+
+        /* GHOST MODE — przeszkody (klasa nadana przez JS na materiale) */
+        /* LANE SHIFT — wizualna linia pomocnicza */
+        #lane-shift-indicator {
+            display: none; position: fixed; top: 50%; left: 50%;
+            transform: translate(-50%,-50%);
+            font-size: 36px; font-weight: 900; letter-spacing: 5px;
+            color: #ff00ff; text-shadow: 0 0 20px #ff00ff;
+            pointer-events: none; z-index: 25;
+            animation: lsFlash 0.3s infinite alternate;
+        }
+        @keyframes lsFlash { from{opacity:0.5} to{opacity:1} }
+
+        /* ═══════════════════════════════════════════
+           MENU OSIĄGNIĘĆ
+        ═══════════════════════════════════════════ */
+        .ach-item-menu {
+            display: flex; align-items: center; gap: 15px; margin: 10px 0; padding: 12px;
+            background: rgba(255,255,255,0.05); border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+        }
+        .ach-item-menu:hover { background: rgba(255,255,255,0.1); }
+        .ach-item-menu.locked { opacity: 0.5; filter: grayscale(100%); }
+        .ach-item-menu .ach-icon { font-size: 32px; text-shadow: 0 0 10px rgba(255,255,255,0.5); }
+        .ach-item-menu .ach-info { flex: 1; }
+        .ach-item-menu .ach-name { font-size: 16px; font-weight: 900; margin-bottom: 4px; letter-spacing: 1px; }
+        .ach-item-menu .ach-desc { font-size: 12px; color: #aaa; }
+
+        /* ═══════════════════════════════════════════
+           ZASADY RESPONSYWNOŚCI (MOBILE)
+        ═══════════════════════════════════════════ */
+        @media (max-width: 600px) {
+            .menu-overlay { width: 95%; padding: 20px; }
+            .main-title { font-size: 32px; margin-bottom: 15px; }
+            .sl-sector-name { font-size: 30px; letter-spacing: 4px; }
+            .sl-bar-wrap { width: 90%; }
+            #achievement-toast { width: 90%; right: -100%; top: 10px; }
+            #achievement-toast.show { right: 5%; }
+            .gd-buttons-row { gap: 10px; }
+            .gd-sub-btn { width: 55px; height: 55px; }
+            .btn { font-size: 13px; padding: 10px; }
+            .level-name { font-size: 20px; }
+            #ui { font-size: 14px; min-width: 150px; padding: 10px; }
+            #alert-overlay { font-size: 24px; padding: 10px 20px; width: 80%; }
+        }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+    <div id="ui">
+        <div class="ui-line">TRYB: <span id="mode-tag" style="color:#fff;">-</span></div>
+        <div class="ui-line">SCORE: <span id="score-val">0</span> / <span id="target-val">∞</span> <span id="combo-ui" style="color:#ffff00;">x1</span></div>
+        <div class="ui-line">CREDITS: <span id="coin-val">0</span></div>
+        <div class="ui-line">SHIELD: <span id="shield-ui">BRAK</span></div>
+        <div class="ui-line"><span id="event-tag" style="color: #ffff00; text-shadow: 0 0 8px #ffff00;"></span></div>
+    </div>
+
+    <div id="sector-loading">
+        <div class="sl-top-line">// CYBER_OPERATIONS_EDITION //</div>
+        <div class="sl-sector-name" id="sl-name">---</div>
+        <div class="sl-level-tag" id="sl-tag">SEKTOR :: INICJALIZACJA</div>
+        <div class="sl-bar-wrap"><div class="sl-bar-fill" id="sl-bar"></div></div>
+        <div class="sl-log" id="sl-log">Ładowanie zasobów sektora...</div>
+        <div class="sl-diff-badge" id="sl-diff"></div>
+    </div>
+
+    <div id="achievement-toast">
+        <div class="ach-icon" id="ach-icon">🏆</div>
+        <div class="ach-text-wrap">
+            <div class="ach-title">✦ ACHIEVEMENT ODBLOKOWANY ✦</div>
+            <div class="ach-name" id="ach-name">-</div>
+            <div class="ach-desc" id="ach-desc">-</div>
+        </div>
+    </div>
+
+    <div id="hitstop-overlay"></div>
+
+    <div id="lane-shift-indicator">⚠ LANE_SHIFT ⚠</div>
+
+    <div id="parallax-container">
+        <canvas id="px-canvas" style="position:absolute;inset:0;width:100%;height:100%;"></canvas>
+    </div>
+
+    <div id="alert-overlay">WIRUS WYKRYTY</div>
+    <div id="invaders-container"></div>
+
+    <div id="main-menu" class="menu-overlay">
+        <div class="main-title">CYBER_DASH</div>
+        
+        <div>
+            <button class="gd-play-btn" onclick="openLevelsMenu()">
+                <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+        </div>
+
+        <div class="submenu-title" style="font-size: 16px; margin-bottom: 5px; color: #ff007f;">NANO_CREDITS: <span id="menu-cc-count" class="cc-color">0</span> CC</div>
+
+        <div id="daily-badge" onclick="startDailyChallenge()">
+            <div class="daily-title">⚡ DZIENNE WYZWANIE</div>
+            <div class="daily-desc" id="daily-desc">Ładowanie...</div>
+            <div class="daily-reward" id="daily-reward"></div>
+        </div>
+
+        <div class="gd-buttons-row">
+            <button class="gd-sub-btn blue-btn" onclick="startInfinityMode()" title="Tryb Nieskończony">
+                <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm1.01 16h-2v-2h2v2zm0-4h-2V7h2v7z"/></svg>
+            </button>
+            <button class="gd-sub-btn" onclick="openGarage()" title="Garaż i Customizacja">
+                <svg viewBox="0 0 24 24"><path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L7.9 5 5 7.9 1.7 4.7C.6 7.1 1 10.1 3 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.4-.4.4-1.1 0-1.4z"/></svg>
+            </button>
+            <button class="gd-sub-btn" style="background: linear-gradient(135deg, #ffcc00 0%, #cc9900 100%); box-shadow: 0 8px 20px rgba(255, 204, 0, 0.4), 0 0 15px #ffcc00;" onclick="openAchievements()" title="Osiągnięcia">
+                <svg viewBox="0 0 24 24"><path d="M12 15.4l-3.76 2.27 1-4.28-3.32-2.88 4.38-.38L12 6.1l1.71 4.04 4.38.38-3.32 2.88 1 4.28z"/></svg>
+            </button>
+            <button class="gd-sub-btn gray-btn" onclick="openSettings()" title="Ustawienia">
+                <svg viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.06-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.73,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.06,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.49-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>
+            </button>
+        </div>
+    </div>
+
+    <div id="settings-menu" class="menu-overlay" style="display:none;">
+        <div class="main-title" style="font-size:36px; color: #00ffcc; text-shadow: 2px 2px 0px #008080;">USTAWIENIA</div>
+        
+        <div style="text-align: left; margin: 30px 0; background: rgba(0,0,0,0.5); padding: 20px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1);">
+            <label style="color: #ff007f; font-size: 18px; font-weight: bold; letter-spacing: 1px;">GŁOŚNOŚĆ MUZYKI: <span id="vol-display" style="color:#fff;">60%</span></label>
+            <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="0.6" oninput="changeVolume(this.value)">
+        </div>
+
+        <button class="btn btn-pink" onclick="backToMain()" style="width:100%; margin-top:15px; padding: 15px;">ZAPISZ I WRÓĆ</button>
+    </div>
+
+    <div id="levels-menu" class="menu-overlay" style="display:none;">
+        <div class="main-title" style="color: #00ffcc; text-shadow: 2px 2px 0px #ff007f; font-size:38px;">SELECT SECTOR</div>
+        
+        <div class="level-carousel">
+            <button class="carousel-arrow" onclick="prevLevel()">&lt;</button>
+            <div class="level-card" id="level-card-content"></div>
+            <button class="carousel-arrow" onclick="nextLevel()">&gt;</button>
+        </div>
+
+        <button class="btn btn-start-lvl" onclick="startSelectedLevel()">INICJUJ SEKTOR</button>
+        <button class="btn btn-pink" onclick="backToMain()" style="width: 100%; padding: 12px; margin-top: 10px;">POWRÓT DO MENU</button>
+    </div>
+
+    <div id="garage-menu" class="menu-overlay" style="display:none;">
+        <div class="main-title" style="font-size:36px; color: #ff007f; text-shadow: 2px 2px 0px #00ffff;">CUSTOM_SHOP</div>
+        <div style="text-align: left; font-size:15px; margin-bottom:15px; font-weight:bold;">PORTFEL: <span id="garage-cc-count" class="cc-color">0</span> CC</div>
+        
+        <div class="submenu-title" style="font-size: 16px; text-align:left; margin: 5px 0;">MODUŁ OCHRONNY</div>
+        <div class="shop-item">
+            <span>ZAPASOWA TARCZA ELEMENTARNA</span>
+            <button class="btn" id="buy-shield-btn" onclick="buyShield()">KUP [50 CC]</button>
+        </div>
+
+        <div class="submenu-title" style="font-size: 16px; text-align:left; margin: 15px 0 5px 0;">SKÓRKI NEONOWE</div>
+        <div class="shop-box" id="skins-container"></div>
+
+        <button class="btn btn-pink" onclick="backToMain()" style="width:100%; margin-top:15px; padding: 15px;">ZAPISZ I ZAMKNIJ</button>
+    </div>
+
+    <div id="summary-screen" class="menu-overlay" style="display:none;">
+        <div id="summary-title" class="main-title">SYSTEM CRASH</div>
+        <div style="text-align:center; margin-bottom:10px;">
+            <div id="sum-rank-badge" class="rank-badge rank-D">D</div>
+        </div>
+        <div class="shop-box" style="max-height:none; text-align:left; padding:20px; font-size:16px; line-height: 1.8;">
+            <div>• STATUS SECURE: <span id="sum-status">-</span></div>
+            <div>• UZYSKANY SCORE: <span id="sum-score" style="color:#ff007f; font-weight:bold;">0</span></div>
+            <div>• NAJLEPSZE COMBO: <span id="sum-combo" style="color:#ffff00; font-weight:bold;">x1</span></div>
+            <div>• CZAS UKOŃCZENIA: <span id="sum-time" style="color:#00ffcc; font-weight:bold;">--</span></div>
+            <div>• STAN KONTA: <span id="sum-cc" class="cc-color" style="font-weight:bold;">0</span> CC</div>
+        </div>
+        <div id="sum-achievements" style="margin: 8px 0; font-size:13px; color:#ffff00; text-align:left;"></div>
+        <button class="btn btn-start-lvl" id="btn-action" onclick="restartCurrentMode()">REBOOT SYSTEM</button>
+        <button class="btn btn-pink" onclick="exitToMenu()" style="width:100%; margin-top:10px; padding: 12px; box-sizing:border-box;">MENU GŁÓWNE</button>
+    </div>
+
+    <div id="achievements-menu" class="menu-overlay" style="display:none;">
+        <div class="main-title" style="font-size:36px; color: #ffff00; text-shadow: 2px 2px 0px #ff007f;">ACHIEVEMENTS</div>
+        
+        <div class="shop-box" id="achievements-list-container" style="max-height: 350px; text-align: left; margin-bottom: 20px;">
+            </div>
+
+        <button class="btn btn-pink" onclick="backToMain()" style="width:100%; padding: 15px;">POWRÓT DO MENU</button>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <script>
+        // BAZA DANYCH POZIOMÓW
+        const LEVELS_DATA = [
+            { id: 1, name: "CYBER INITIATION", difficulty: "easy", speed: 40, target: 250, desc: "Sektor treningowy. Brak anomalii sieciowych. Zbierz pierwsze kredyty." },
+            { id: 2, name: "NET RUNNER", difficulty: "normal", speed: 50, target: 450, desc: "Wykryto drobne fluktuacje sieci. Aktywny algorytm zakrzywiania czasu." },
+            { id: 3, name: "OVERDRIVE", difficulty: "hard", speed: 60, target: 650, desc: "Zasilanie węzła destabilizuje się. Przygotuj się na zaćmienia EMP." },
+            { id: 4, name: "MATRIX INFECTION", difficulty: "hard", speed: 70, target: 850, desc: "Sektor zainfekowany trojanami. Wymaga niszczenia wirusów myszką." },
+            { id: 5, name: "VOLTAGE RUSH", difficulty: "insane", speed: 80, target: 1000, desc: "Nagły skok napięcia sieciowego. Przeszkody generują się w zawrotnym tempo." },
+            { id: 6, name: "GRID CORE", difficulty: "insane", speed: 85, target: 1200, desc: "Kombinacja wszystkich zagrożeń. Prędkość przesyłu danych wzrasta." },
+            { id: 7, name: "ARCHITECT SANCTUM", difficulty: "demon", speed: 95, target: 1500, desc: "Główna zapora AI. Wysoce zagęszczone klastry barier i zmyłek." },
+            { id: 8, name: "TROTIL", difficulty: "demon", speed: 105, target: 1800, desc: "Czysty, niekontrolowany cyber-chaos. Wymaga wybitnego refleksu." },
+            { id: 9, name: "Every End", difficulty: "truedemon", speed: 120, target: 0, desc: "Punkt osobliwości. Przetrwaj do końca utworu audio. Twoja ostatnia próba." },
+            { id: 10, name: "Apoplexy", difficulty: "truedemon", speed: 35, target: 0, desc: "Zgniatająca gęstość danych przy minimalnym transferze. Liczy się tylko idealny timing." }
+        ];
+
+        // SKLEP O NOWE SKÓRKI
+        const SKINS_DATA = [
+            { id: "skin_cyan", name: "CYAN SHIFTER", color: 0x00ffcc, price: 0 },
+            { id: "skin_pink", name: "PINK WAVE", color: 0xff007f, price: 100 },
+            { id: "skin_green", name: "MATRIX BLOCK", color: 0x00ff66, price: 150 },
+            { id: "skin_gold", name: "CHRONO GOLD", color: 0xffd700, price: 300 },
+            { id: "skin_red", name: "VAMPIRE RED", color: 0xff0000, price: 400 },
+            { id: "skin_void", name: "VOID BLUE", color: 0x0033ff, price: 600 },
+            { id: "skin_white", name: "WHITE GLITCH", color: 0xffffff, price: 800 },
+            { id: "skin_abyss", name: "ABYSSAL CORE", color: 0x8a2be2, price: 1000 }
+        ];
+
+        let totalCoins = parseInt(localStorage.getItem('cyber_coins')) || 0;
+        let unlockedSkins = JSON.parse(localStorage.getItem('cyber_unlocked_skins')) || ["skin_cyan"];
+        let activeSkinId = localStorage.getItem('cyber_active_skin') || "skin_cyan";
+        let activeColor = SKINS_DATA.find(s => s.id === activeSkinId)?.color || 0x00ffcc;
+        
+        // Głośność muzyki
+        let musicVolume = parseFloat(localStorage.getItem('cyber_volume'));
+        if (isNaN(musicVolume)) musicVolume = 0.6;
+
+        let hasShield = false;
+
+        let gameMode = "MENU"; 
+        let currentCarouselIndex = 0; 
+        let currentLevelNum = 1;
+        let scoreTarget = Infinity;
+
+        let scene, camera, renderer, player, trail, particles, gridMesh;
+        let obstacles = [], coins = [];
+        let score = 0, combo = 1, baseSpeed = 45.0, currentSpeed = 45.0, isGameOver = true, targetX = 0;
+        const laneWidth = 3.5;
+
+        let clock = new THREE.Clock();
+        let spawnInterval = null, coinSpawnInterval = null, eventInterval = null;
+        let cameraShake = 0, activeEvent = null;
+
+        // Flagi animacji ukończenia
+        let isLevelCompleting = false;
+        let completionTimer = 0;
+        
+        let currentMusic = null;
+
+        // ═══ NOWE ZMIENNE ═══
+        let laneOffset = 0;           // LANE_SHIFT — o ile przesunięte tory
+        let laneShiftDir = 1;         // kierunek przesuwania
+        let laneShiftInterval = null;
+        let ghostModeActive = false;  // GHOST_MODE
+        let overloadInterval = null;  // OVERLOAD
+        let decoyCoins = [];          // DECOY fałszywe monety
+        let hitStopActive = false;    // HIT-STOP
+        let levelStartTime = 0;       // czas startu (do rang)
+        let maxComboThisRun = 1;      // max combo (do rang)
+        let coinsCollectedThisRun = 0;// achievementy
+        let anomaliesSurvivedThisRun = 0;
+        let anomalyStarted = false;
+        let noHitThisRun = true;      // achievementy
+        let isDailyChallenge = false; // tryb dziennego wyzwania
+        let dailyModifier = null;     // modyfikator dzienny
+        let pxCtx = null;             // paralaksa canvas context
+        let pxStars = [];             // gwiazdy paralaksy
+        let pxNebulas = [];           // mgławice paralaksy
+        let sessionAchievements = []; // achievementy zdobyte w tej sesji
+
+        // DANE ACHIEVEMENTÓW (+ DODANE 4 NOWE)
+        const ACHIEVEMENTS = {
+            first_crash:   { icon:'💥', name:'SYSTEM FAILURE',  desc:'Doświadcz pierwszego zderzenia w grze' },
+            no_coins:      { icon:'🚫', name:'ASCETA',          desc:'Ukończ poziom bez zbierania monet' },
+            rich_boy:      { icon:'💰', name:'NANO_CAPITALIST', desc:'Zbierz 15 monet w jednym biegu' },
+            combo_10:      { icon:'⚡', name:'CHAIN MASTER',    desc:'Osiągnij combo x10' },
+            combo_20:      { icon:'🔥', name:'OVERDRIVE COMBO', desc:'Osiągnij combo x20' },
+            shield_used:   { icon:'🛡️', name:'DEFLECTOR',       desc:'Uratuj się używając tarczy ochronnej' },
+            survive_3:     { icon:'☢️', name:'ANOMALY SURVIVOR',desc:'Przeżyj 3 anomalie z rzędu' },
+            no_hit:        { icon:'👻', name:'UNTOUCHABLE',     desc:'Ukończ poziom bez trafień' },
+            speedrun:      { icon:'⏱️', name:'SPEED RUNNER',    desc:'Ukończ poziom w mniej niż 60s' },
+            shopaholic:    { icon:'🛒', name:'SKIN UPGRADE',    desc:'Kup nową skórkę w sklepie' },
+            daily_done:    { icon:'📅', name:'DAILY GRINDER',   desc:'Ukończ dzienne wyzwanie' },
+            all_sectors:   { icon:'🌌', name:'GRID MASTER',     desc:'Ukończ wszystkie 10 sektorów' },
+        };
+        let unlockedAchievements = JSON.parse(localStorage.getItem('cyber_achievements') || '[]');
+        let completedLevels = JSON.parse(localStorage.getItem('cyber_completed') || '[]');
+
+        const invaderSVG = `<svg viewBox="0 0 16 12" width="100%" height="100%"><path fill="#ff0055" d="M3 0h2v1h2V0h2v1h2V0h2v1h1v2h-1v1h1v2h-2V5h-1v2H4V5H3v2H1V4h1V3H1V1h1V0zm2 4h2v2H5zm4 0h2v2H9zM1 9h2v1H1zm12 0h2v1h-2zM0 11h3v1H0zm13 0h3v1h-3z"/></svg>`;
+
+        window.onload = function() {
+            initThree();
+            initParallax();
+            updateMenuCurrency();
+            renderCarousel();
+            setupDailyChallenge();
+            
+            // Inicjalizacja suwaka głośności
+            document.getElementById('volume-slider').value = musicVolume;
+            document.getElementById('vol-display').innerText = Math.round(musicVolume * 100) + "%";
+        };
+
+        function changeVolume(val) {
+            musicVolume = parseFloat(val);
+            localStorage.setItem('cyber_volume', musicVolume);
+            document.getElementById('vol-display').innerText = Math.round(musicVolume * 100) + "%";
+            if (currentMusic) {
+                currentMusic.volume = musicVolume;
+            }
+        }
+
+        // Obsługa muzyki
+        function playLevelMusic(levelId) {
+            stopLevelMusic(); 
+            
+            let audioSrc = "";
+            if (levelId === 9) audioSrc = "Every_End.mp3";
+            else if (levelId === 10) audioSrc = "Apoplexy.mp3";
+
+            if (audioSrc !== "") {
+                currentMusic = new Audio(audioSrc);
+                currentMusic.volume = musicVolume; 
+                
+                // Poziomy przetrwania piosenki (9 i 10) - nie zapętlamy
+                if (levelId === 9 || levelId === 10) {
+                    currentMusic.loop = false;
+                    currentMusic.addEventListener('ended', () => {
+                        // Jeśli piosenka się skończy, a gracz nie przegrał - wygrywa poziom
+                        if (!isGameOver && !isLevelCompleting) {
+                            triggerLevelCompletionSequence();
+                        }
+                    });
+                } else {
+                    currentMusic.loop = true; 
+                }
+                
+                currentMusic.play().catch(err => console.log("Audio zablokowane przez przeglądarkę:", err));
+            }
+        }
+
+        function stopLevelMusic() {
+            if (currentMusic) {
+                currentMusic.pause();
+                currentMusic.currentTime = 0;
+                currentMusic = null;
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════
+        //  PARALAKSA TŁA
+        // ═══════════════════════════════════════════════════════
+        function initParallax() {
+            const canvas = document.getElementById('px-canvas');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            pxCtx = canvas.getContext('2d');
+
+            // 3 warstwy gwiazd (różne prędkości)
+            pxStars = [];
+            for (let layer = 0; layer < 3; layer++) {
+                const count = [120, 60, 30][layer];
+                const speed = [0.05, 0.18, 0.4][layer];
+                const size  = [0.8, 1.4, 2.2][layer];
+                const alpha = [0.35, 0.55, 0.85][layer];
+                for (let i = 0; i < count; i++) {
+                    pxStars.push({
+                        x: Math.random() * canvas.width,
+                        y: Math.random() * canvas.height,
+                        speed, size, alpha,
+                        color: Math.random() > 0.85 ? '#ff007f' : Math.random() > 0.6 ? '#00ffcc' : '#ffffff'
+                    });
+                }
+            }
+            // Mgławice — wielkie rozmyte plamy
+            pxNebulas = [];
+            for (let i = 0; i < 5; i++) {
+                pxNebulas.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    r: 80 + Math.random() * 160,
+                    speed: 0.008 + Math.random() * 0.015,
+                    hue: Math.random() > 0.5 ? '255,0,127' : '0,255,204',
+                    alpha: 0.03 + Math.random() * 0.04
+                });
+            }
+            animateParallax();
+        }
+
+        function animateParallax() {
+            requestAnimationFrame(animateParallax);
+            if (!pxCtx) return;
+            const W = pxCtx.canvas.width, H = pxCtx.canvas.height;
+            pxCtx.clearRect(0, 0, W, H);
+
+            // Mgławice
+            pxNebulas.forEach(n => {
+                n.y += n.speed;
+                if (n.y - n.r > H) { n.y = -n.r; n.x = Math.random() * W; }
+                const g = pxCtx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r);
+                g.addColorStop(0, `rgba(${n.hue},${n.alpha})`);
+                g.addColorStop(1, 'rgba(0,0,0,0)');
+                pxCtx.fillStyle = g;
+                pxCtx.beginPath(); pxCtx.arc(n.x, n.y, n.r, 0, Math.PI*2); pxCtx.fill();
+            });
+
+            // Gwiazdy
+            pxStars.forEach(s => {
+                s.y += s.speed;
+                if (s.y > H) { s.y = 0; s.x = Math.random() * W; }
+                pxCtx.globalAlpha = s.alpha;
+                pxCtx.fillStyle = s.color;
+                pxCtx.beginPath(); pxCtx.arc(s.x, s.y, s.size, 0, Math.PI*2); pxCtx.fill();
+            });
+            pxCtx.globalAlpha = 1;
+        }
+
+        // ═══════════════════════════════════════════════════════
+        //  EKRAN ŁADOWANIA SEKTORA
+        // ═══════════════════════════════════════════════════════
+        const LOAD_LOGS = [
+            "Uwierzytelnianie klucza sektora...",
+            "Inicjalizacja algorytmu spawnu...",
+            "Kalibracja detektorów anomalii...",
+            "Ładowanie zasobów graficznych...",
+            "Szyfrowanie kanału danych...",
+            "Synchronizacja prędkości transferu...",
+            "Weryfikacja integralności sektora...",
+            "Aktywacja systemu przeszkód...",
+            "Gotowy do transmisji. INICJUJĘ."
+        ];
+        const DIFF_COLORS = {
+            easy:'#00ff66,#000', normal:'#00ffff,#000', hard:'#ffaa00,#000',
+            insane:'#ff007f,#fff', demon:'#990000,#fff', truedemon:'#ff0055,#000'
+        };
+
+        function showSectorLoading(levelData, callback) {
+            const el = document.getElementById('sector-loading');
+            el.classList.add('active');
+            document.getElementById('sl-name').innerText = levelData.name;
+            document.getElementById('sl-tag').innerText = `SEKTOR ${levelData.id} // ${levelData.difficulty.toUpperCase()}`;
+            const [bg, col] = (DIFF_COLORS[levelData.difficulty] || '#888,#fff').split(',');
+            const badge = document.getElementById('sl-diff');
+            badge.style.background = bg; badge.style.color = col;
+            badge.innerText = levelData.difficulty.toUpperCase();
+
+            const bar = document.getElementById('sl-bar');
+            const log = document.getElementById('sl-log');
+            bar.style.width = '0%';
+            let step = 0, logIdx = 0;
+            const totalSteps = 60;
+
+            const interval = setInterval(() => {
+                step++;
+                bar.style.width = (step / totalSteps * 100) + '%';
+                if (step % 7 === 0 && logIdx < LOAD_LOGS.length) {
+                    log.innerText = LOAD_LOGS[logIdx++];
+                }
+                if (step >= totalSteps) {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        el.classList.remove('active');
+                        callback();
+                    }, 300);
+                }
+            }, 25);
+        }
+
+        // ═══════════════════════════════════════════════════════
+        //  SYSTEM RANG
+        // ═══════════════════════════════════════════════════════
+        function calcRank(isVictory, elapsedSec, maxCombo, scoreVal, target) {
+            if (!isVictory) return 'D';
+            let pts = 0;
+            // Czas
+            if (elapsedSec < 30) pts += 4;
+            else if (elapsedSec < 60) pts += 3;
+            else if (elapsedSec < 120) pts += 2;
+            else pts += 1;
+            // Combo
+            if (maxCombo >= 20) pts += 4;
+            else if (maxCombo >= 10) pts += 3;
+            else if (maxCombo >= 5)  pts += 2;
+            else pts += 1;
+            // Score vs target
+            if (target > 0) {
+                const ratio = scoreVal / target;
+                if (ratio >= 2.0) pts += 3;
+                else if (ratio >= 1.5) pts += 2;
+                else pts += 1;
+            } else pts += 2;
+
+            if (pts >= 10) return 'SS';
+            if (pts >= 8)  return 'S';
+            if (pts >= 6)  return 'A';
+            if (pts >= 4)  return 'B';
+            if (pts >= 2)  return 'C';
+            return 'D';
+        }
+
+        function showRankBadge(rank) {
+            const el = document.getElementById('sum-rank-badge');
+            el.className = 'rank-badge rank-' + rank;
+            el.innerText = rank;
+        }
+
+        // ═══════════════════════════════════════════════════════
+        //  ACHIEVEMENTY
+        // ═══════════════════════════════════════════════════════
+        function unlockAchievement(id) {
+            if (unlockedAchievements.includes(id)) return;
+            unlockedAchievements.push(id);
+            localStorage.setItem('cyber_achievements', JSON.stringify(unlockedAchievements));
+            sessionAchievements.push(id);
+            showAchievementToast(ACHIEVEMENTS[id]);
+            // Nagroda CC za achievement
+            totalCoins += 25;
+            localStorage.setItem('cyber_coins', totalCoins);
+        }
+
+        let toastQueue = [], toastBusy = false;
+        function showAchievementToast(ach) {
+            toastQueue.push(ach);
+            if (!toastBusy) processToastQueue();
+        }
+        function processToastQueue() {
+            if (!toastQueue.length) { toastBusy = false; return; }
+            toastBusy = true;
+            const ach = toastQueue.shift();
+            const toast = document.getElementById('achievement-toast');
+            document.getElementById('ach-icon').innerText = ach.icon;
+            document.getElementById('ach-name').innerText = ach.name;
+            document.getElementById('ach-desc').innerText = ach.desc;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(processToastQueue, 500);
+            }, 3000);
+        }
+
+        function checkRunAchievements(isVictory, elapsedSec) {
+            if (isVictory) {
+                if (coinsCollectedThisRun === 0) unlockAchievement('no_coins');
+                if (noHitThisRun) unlockAchievement('no_hit');
+                if (elapsedSec < 60 && scoreTarget < Infinity) unlockAchievement('speedrun');
+                if (isDailyChallenge) unlockAchievement('daily_done');
+                // all sectors
+                if (gameMode === 'SECTOR') {
+                    if (!completedLevels.includes(currentLevelNum)) {
+                        completedLevels.push(currentLevelNum);
+                        localStorage.setItem('cyber_completed', JSON.stringify(completedLevels));
+                    }
+                    if (completedLevels.length >= 10) unlockAchievement('all_sectors');
+                }
+            } else {
+                unlockAchievement('first_crash');
+            }
+            if (anomaliesSurvivedThisRun >= 3) unlockAchievement('survive_3');
+        }
+
+        function renderSessionAchievements() {
+            const el = document.getElementById('sum-achievements');
+            if (!sessionAchievements.length) { el.innerHTML = ''; return; }
+            el.innerHTML = sessionAchievements.map(id => {
+                const a = ACHIEVEMENTS[id];
+                return `<div style="padding:4px 0;">🏆 ${a.icon} ${a.name} <span style="color:#aaa;font-size:11px;">+25 CC</span></div>`;
+            }).join('');
+        }
+
+        // ═══════════════════════════════════════════════════════
+        //  DZIENNE WYZWANIE
+        // ═══════════════════════════════════════════════════════
+        const DAILY_MODIFIERS = [
+            { name: 'TURBO SEKTOR',      desc: 'Prędkość +50%',        speedMult: 1.5, targetMult: 1.0, reward: 200 },
+            { name: 'COMBO SZAŁ',        desc: 'Combo nie resetuje',   comboNoReset: true, reward: 150 },
+            { name: 'ŚLEPIEC',           desc: 'Mgła na połowie ekranu', fogMode: true, reward: 250 },
+            { name: 'MINIMALNE ŻYCIE',   desc: 'Zaczynasz z 1 życiem', startLives: 1, reward: 300 },
+            { name: 'MONETOWY DESZCZ',   desc: '3× więcej monet',      coinMult: 3, reward: 100 },
+        ];
+
+        function setupDailyChallenge() {
+            const today = new Date().toDateString();
+            const done = localStorage.getItem('cyber_daily_done') === today;
+            const seed = [...today].reduce((a,c) => a + c.charCodeAt(0), 0);
+            const lvlIdx = seed % 10;
+            const modIdx = (seed >> 2) % DAILY_MODIFIERS.length;
+            const lvl = LEVELS_DATA[lvlIdx];
+            const mod = DAILY_MODIFIERS[modIdx];
+
+            document.getElementById('daily-desc').innerText = `LVL ${lvl.id}: ${lvl.name} — ${mod.desc}`;
+            document.getElementById('daily-reward').innerText = done ? '✓ UKOŃCZONO DZIŚ' : `Nagroda: ${mod.reward} CC`;
+            if (done) document.getElementById('daily-badge').classList.add('daily-done');
+
+            // Zapisz w zmiennych globalnych
+            window._dailyLvl = lvl;
+            window._dailyMod = mod;
+            window._dailyDone = done;
+        }
+
+        function startDailyChallenge() {
+            if (window._dailyDone) return;
+            isDailyChallenge = true;
+            dailyModifier = window._dailyMod;
+            const lvl = window._dailyLvl;
+            currentCarouselIndex = LEVELS_DATA.findIndex(l => l.id === lvl.id);
+            currentLevelNum = lvl.id;
+            gameMode = "SECTOR";
+            document.querySelectorAll('.menu-overlay').forEach(el => el.style.display = 'none');
+            showSectorLoading(lvl, () => {
+                playLevelMusic(lvl.id);
+                startLevel(lvl.speed, lvl.target, lvl.name + ' [DAILY]');
+            });
+        }
+
+        // ═══════════════════════════════════════════════════════
+        //  HIT-STOP
+        // ═══════════════════════════════════════════════════════
+        function triggerHitStop(duration = 120) {
+            if (hitStopActive) return;
+            hitStopActive = true;
+            const wasSpeed = currentSpeed;
+            currentSpeed = 0;
+            const overlay = document.getElementById('hitstop-overlay');
+            overlay.style.display = 'block';
+            cameraShake = 1.5;
+            setTimeout(() => {
+                currentSpeed = wasSpeed;
+                overlay.style.display = 'none';
+                hitStopActive = false;
+            }, duration);
+        }
+
+        function initThree() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x04020a);
+            scene.fog = new THREE.FogExp2(0x04020a, 0.015);
+
+            camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 3.5, 7);
+            camera.lookAt(0, 1.0, -5);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            const mainLight = new THREE.AmbientLight(0xffffff, 0.4); scene.add(mainLight);
+            const dirLight = new THREE.DirectionalLight(0x00ffff, 2.0); dirLight.position.set(5, 15, 5); scene.add(dirLight);
+
+            const playerGeo = new THREE.BoxGeometry(1.2, 1.2, 1.2);
+            const playerMat = new THREE.MeshPhongMaterial({ color: activeColor, emissive: activeColor, emissiveIntensity: 0.6 });
+            player = new THREE.Mesh(playerGeo, playerMat); 
+            player.position.set(0, 0.6, 0); 
+            scene.add(player);
+
+            const trailGeo = new THREE.PlaneGeometry(1.2, 12); trailGeo.rotateX(-Math.PI / 2);
+            trail = new THREE.Mesh(trailGeo, new THREE.MeshBasicMaterial({ color: activeColor, transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
+            trail.position.set(0, 0.05, 6); scene.add(trail);
+
+            createGrid(); 
+            createParticles();
+
+            window.addEventListener('resize', onWindowResize);
+            
+            // Obsługa klawiatury
+            document.addEventListener('keydown', handleKeyDown);
+
+            // Obsługa ekranów dotykowych (Swipe i Tap)
+            setupTouchControls();
+
+            clock.getDelta();
+            animate();
+        }
+
+        function setupTouchControls() {
+            let touchStartX = 0;
+            let touchStartY = 0;
+
+            document.addEventListener('touchstart', e => {
+                if (isGameOver) return;
+                // Zapobiegamy działaniu w miejscach UI by móc zabić wirusa i klikać opcje
+                if (e.target.closest('#ui') || e.target.closest('.invader')) return;
+                
+                touchStartX = e.changedTouches[0].screenX;
+                touchStartY = e.changedTouches[0].screenY;
+            }, {passive: true});
+
+            document.addEventListener('touchend', e => {
+                if (isGameOver) return;
+                if (e.target.closest('#ui') || e.target.closest('.invader')) return;
+
+                let touchEndX = e.changedTouches[0].screenX;
+                let touchEndY = e.changedTouches[0].screenY;
+                
+                let dx = touchEndX - touchStartX;
+                let dy = touchEndY - touchStartY;
+                
+                // Jeśli jest to swipe (przesunięcie powyżej 30 pikseli i bardziej poziome niż pionowe)
+                if (Math.abs(dx) > 30 && Math.abs(dx) > Math.abs(dy)) {
+                    if (dx > 0) { // Przesunięcie w prawo
+                        if (targetX < laneWidth) targetX += laneWidth;
+                    } else { // Przesunięcie w lewo
+                        if (targetX > -laneWidth) targetX -= laneWidth;
+                    }
+                } 
+                // Jeśli to zwykły tap/klik (małe przesunięcie)
+                else if (Math.abs(dx) < 15 && Math.abs(dy) < 15) {
+                    if (touchEndX < window.innerWidth / 2) {
+                        // Tapnięto w lewą połowę
+                        if (targetX > -laneWidth) targetX -= laneWidth;
+                    } else {
+                        // Tapnięto w prawą połowę
+                        if (targetX < laneWidth) targetX += laneWidth;
+                    }
+                }
+            }, {passive: true});
+        }
+
+        function createGrid() {
+            const gridGeo = new THREE.PlaneGeometry(120, 1000, 40, 80);
+            const gridMat = new THREE.MeshBasicMaterial({ color: 0x140a2b, wireframe: true });
+            gridMesh = new THREE.Mesh(gridGeo, gridMat); 
+            gridMesh.rotation.x = -Math.PI / 2; 
+            gridMesh.position.z = -400; 
+            scene.add(gridMesh);
+
+            for(let i = -1; i <= 1; i += 2) {
+                const lineGeo = new THREE.BoxGeometry(0.15, 0.1, 1000);
+                const lineMat = new THREE.MeshPhongMaterial({ color: 0xff007f, emissive: 0xff007f, emissiveIntensity: 1.5 });
+                const line = new THREE.Mesh(lineGeo, lineMat); 
+                line.position.set(i * (laneWidth * 1.5), 0, -400); 
+                scene.add(line);
+            }
+        }
+
+        function createParticles() {
+            const pGeometry = new THREE.BufferGeometry(); 
+            const pCount = 900; 
+            const positions = new Float32Array(pCount * 3);
+            for(let i = 0; i < pCount * 3; i += 3) {
+                positions[i] = (Math.random() - 0.5) * 80; 
+                positions[i+1] = Math.random() * 30 - 5; 
+                positions[i+2] = -Math.random() * 400;
+            }
+            pGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            const pMaterial = new THREE.PointsMaterial({ color: 0x00ffff, size: 0.4, transparent: true, opacity: 0.6 });
+            particles = new THREE.Points(pGeometry, pMaterial); 
+            scene.add(particles);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = Math.min(clock.getDelta(), 0.1);
+
+            const pPositions = particles.geometry.attributes.position.array;
+            let speedMultiplier = isGameOver ? 15.0 : currentSpeed;
+            
+            if (isLevelCompleting) {
+                speedMultiplier = currentSpeed * 2.5;
+            }
+
+            for(let i = 2; i < pPositions.length; i += 3) {
+                pPositions[i] += speedMultiplier * delta;
+                if (pPositions[i] > 10) pPositions[i] = -400;
+            }
+            particles.geometry.attributes.position.needsUpdate = true;
+
+            if (!isGameOver || isLevelCompleting) {
+                gridMesh.position.z += currentSpeed * delta;
+                if (gridMesh.position.z > 0) gridMesh.position.z = -400;
+            }
+
+            if (!isGameOver) {
+                player.position.x += (targetX - player.position.x) * 22 * delta;
+                trail.position.x = player.position.x;
+                
+                player.rotation.x += 1.5 * delta;
+                player.rotation.y += 1.5 * delta;
+
+                for (let i = obstacles.length - 1; i >= 0; i--) {
+                    let obs = obstacles[i];
+                    obs.position.z += currentSpeed * delta;
+
+                    if (Math.abs(obs.position.z - player.position.z) < 1.0 && Math.abs(obs.position.x - player.position.x) < 1.2) {
+                        if (hasShield) {
+                            hasShield = false;
+                            unlockAchievement('shield_used');
+                            document.getElementById('shield-ui').innerText = "BRAK";
+                            scene.remove(obs);
+                            obstacles.splice(i, 1);
+                            cameraShake = 0.6;
+                            continue;
+                        } else {
+                            noHitThisRun = false;
+                            endGame(false);
+                        }
+                    }
+
+                    if (obs.position.z > 15) {
+                        scene.remove(obs);
+                        obstacles.splice(i, 1);
+                        score += 10 * combo;
+                        document.getElementById('score-val').innerText = score;
+
+                        // Wygrana w trybie Sektora
+                        if (gameMode === "SECTOR") {
+                            // Jeżeli to NIE jest poziom 9 i 10 (które kończą się piosenką), sprawdzamy punkty:
+                            if (currentLevelNum !== 9 && currentLevelNum !== 10 && score >= scoreTarget) {
+                                triggerLevelCompletionSequence();
+                            }
+                        }
+                    }
+                }
+
+                const time = Date.now() * 0.005;
+                for (let i = coins.length - 1; i >= 0; i--) {
+                    let c = coins[i];
+                    c.position.z += currentSpeed * delta;
+                    c.rotation.x += 2 * delta; 
+                    c.rotation.y += 2 * delta; 
+                    c.position.y = 0.8 + Math.sin(time + c.position.z * 0.1) * 0.15;
+
+                    if (Math.abs(c.position.z - player.position.z) < 1.2 && Math.abs(c.position.x - player.position.x) < 1.2) {
+                        totalCoins += 5;
+                        combo++;
+                        coinsCollectedThisRun++;
+                        
+                        if (coinsCollectedThisRun >= 15) {
+                            unlockAchievement('rich_boy');
+                        }
+
+                        if (combo > maxComboThisRun) {
+                            maxComboThisRun = combo;
+                            if (combo >= 10) unlockAchievement('combo_10');
+                            if (combo >= 20) unlockAchievement('combo_20');
+                        }
+                        localStorage.setItem('cyber_coins', totalCoins);
+                        document.getElementById('coin-val').innerText = totalCoins;
+                        document.getElementById('combo-ui').innerText = "x" + combo;
+                        scene.remove(c);
+                        coins.splice(i, 1);
+                        continue;
+                    }
+
+                    if (c.position.z > 15) {
+                        scene.remove(c);
+                        coins.splice(i, 1);
+                        combo = 1; 
+                        document.getElementById('combo-ui').innerText = "x1";
+                    }
+                }
+
+                // DECOY COINS — fałszywe monety kradną punkty
+                const time2 = Date.now() * 0.005;
+                for (let i = decoyCoins.length - 1; i >= 0; i--) {
+                    let d = decoyCoins[i];
+                    d.position.z += currentSpeed * delta;
+                    d.rotation.x += 3 * delta;
+                    d.rotation.y += 3 * delta;
+                    d.position.y = 0.8 + Math.sin(time2 + d.position.z * 0.1) * 0.15;
+
+                    if (Math.abs(d.position.z - player.position.z) < 1.2 && Math.abs(d.position.x - player.position.x) < 1.2) {
+                        // Kradnie 30 punktów i monety!
+                        score = Math.max(0, score - 30);
+                        totalCoins = Math.max(0, totalCoins - 10);
+                        combo = 1;
+                        noHitThisRun = false;
+                        localStorage.setItem('cyber_coins', totalCoins);
+                        document.getElementById('score-val').innerText = score;
+                        document.getElementById('coin-val').innerText = totalCoins;
+                        document.getElementById('combo-ui').innerText = "x1";
+                        document.getElementById('event-tag').innerText = "⚠ DECOY! -30 SCORE -10 CC";
+                        document.getElementById('event-tag').style.color = "#ff4400";
+                        cameraShake = 0.4;
+                        scene.remove(d); decoyCoins.splice(i, 1);
+                        setTimeout(() => {
+                            if (activeEvent === "DECOY") {
+                                document.getElementById('event-tag').innerText = "ANOMALIA: DECOY!!";
+                                document.getElementById('event-tag').style.color = "#ffff00";
+                            }
+                        }, 800);
+                        continue;
+                    }
+                    if (d.position.z > 15) { scene.remove(d); decoyCoins.splice(i, 1); }
+                }
+            } // end if(!isGameOver)
+            
+            // ANIMACJA PRZECHODZENIA POZIOMU
+            if (isLevelCompleting) {
+                completionTimer += delta;
+                currentSpeed += 120 * delta; 
+                
+                if (camera.fov < 110) {
+                    camera.fov += 45 * delta;
+                    camera.updateProjectionMatrix();
+                }
+
+                if (completionTimer > 0.8) {
+                    player.position.z -= 90 * delta;
+                    trail.material.opacity -= delta * 2;
+                }
+
+                if (completionTimer >= 2.0) {
+                    isLevelCompleting = false;
+                    endGame(true);
+                }
+            }
+
+            let targetCamX = player.position.x * 0.4;
+
+            if (cameraShake > 0) {
+                camera.position.x = targetCamX + (Math.random() - 0.5) * cameraShake;
+                camera.position.y = 3.5 + (Math.random() - 0.5) * cameraShake;
+                cameraShake -= delta * 2;
+            } else {
+                camera.position.x = targetCamX;
+                camera.position.y = 3.5;
+                if (!isLevelCompleting) camera.position.z = 7;
+            }
+            camera.lookAt(player.position.x * 0.2, 1.0, player.position.z - 5);
+
+            renderer.render(scene, camera);
+        }
+
+        function triggerLevelCompletionSequence() {
+            isGameOver = true; 
+            isLevelCompleting = true;
+            completionTimer = 0;
+            clearAllIntervals();
+            endNetworkEvent();
+
+            document.getElementById('event-tag').innerText = "SEKTOR UKOŃCZONY! SKOK HIPERNAPĘDU...";
+            document.getElementById('event-tag').style.color = "#00ff66";
+        }
+
+        function spawnObstacle() {
+            if (isGameOver) return;
+            const lanes = [-laneWidth, 0, laneWidth];
+            const randomLane = lanes[Math.floor(Math.random() * lanes.length)];
+
+            const obsGeo = new THREE.BoxGeometry(1.5, 1.5, 1.5);
+            const obsMat = new THREE.MeshPhongMaterial({ color: 0xff0055, emissive: 0xaa0033 });
+            const obs = new THREE.Mesh(obsGeo, obsMat);
+            obs.position.set(randomLane, 0.75, -180);
+            scene.add(obs);
+            obstacles.push(obs);
+
+            // Obliczanie interwału spawnu przeszkody
+            let nextSpawn = Math.max(200, 1100 - (currentSpeed * 10));
+            
+            // Specjalna modyfikacja dla LvL 10 Apoplexy -> stały, arcy-szybki timing na wolnej prędkości
+            if (currentLevelNum === 10) {
+                nextSpawn = 300; 
+            }
+
+            spawnInterval = setTimeout(spawnObstacle, nextSpawn);
+        }
+
+        function spawnCoin() {
+            if (isGameOver) return;
+            const lanes = [-laneWidth, 0, laneWidth];
+            const randomLane = lanes[Math.floor(Math.random() * lanes.length)];
+
+            const coinGeo = new THREE.OctahedronGeometry(0.5, 0);
+            const coinMat = new THREE.MeshPhongMaterial({ color: 0xffd700, emissive: 0x997a00, emissiveIntensity: 1.2 });
+            const c = new THREE.Mesh(coinGeo, coinMat);
+            c.position.set(randomLane, 0.8, -140);
+            scene.add(c);
+            coins.push(c);
+
+            // Na 10 poziomie monety też pojawiają się gęściej
+            let coinDelay = currentLevelNum === 10 ? 400 : (Math.random() * 1200 + 600);
+            coinSpawnInterval = setTimeout(spawnCoin, coinDelay);
+        }
+
+        function triggerNetworkEvent() {
+            if (isGameOver) return;
+            const events = ["TIME_WARP", "EMP_BLAST", "MATRIX_INFECTION", "LANE_SHIFT", "GHOST_MODE", "OVERLOAD", "DECOY"];
+            let pool = [...events];
+            if (currentLevelNum === 1) pool = ["DECOY", "LANE_SHIFT"]; // tylko lekkie na lvl 1
+
+            activeEvent = pool[Math.floor(Math.random() * pool.length)];
+            document.getElementById('event-tag').innerText = `ANOMALIA: ${activeEvent}!!`;
+            document.getElementById('event-tag').style.color = "#ffff00";
+            anomalyStarted = true;
+
+            if (activeEvent === "TIME_WARP") {
+                currentSpeed = baseSpeed * 0.5;
+                scene.background.setHex(0x021510);
+
+            } else if (activeEvent === "EMP_BLAST") {
+                currentSpeed = baseSpeed * 1.35;
+                cameraShake = 0.5;
+                document.getElementById('canvas-container').style.filter = "brightness(0.3) contrast(2)";
+
+            } else if (activeEvent === "MATRIX_INFECTION") {
+                document.getElementById('alert-overlay').style.display = "block";
+                spawnVirusUI();
+
+            } else if (activeEvent === "LANE_SHIFT") {
+                // Tory przesuwają się co 1.2s
+                document.getElementById('lane-shift-indicator').style.display = 'block';
+                scene.background.setHex(0x0a001a);
+                laneOffset = 0;
+                let shiftCount = 0;
+                laneShiftInterval = setInterval(() => {
+                    if (isGameOver) { clearInterval(laneShiftInterval); return; }
+                    laneShiftDir = Math.random() > 0.5 ? 1 : -1;
+                    laneOffset = laneShiftDir * laneWidth * (0.3 + Math.random() * 0.5);
+                    // Przesuń wszystkie przeszkody
+                    obstacles.forEach(o => { o.position.x += laneOffset * 0.4; });
+                    decoyCoins.forEach(d => { d.position.x += laneOffset * 0.4; });
+                    cameraShake = 0.3;
+                    shiftCount++;
+                }, 1200);
+
+            } else if (activeEvent === "GHOST_MODE") {
+                // Przeszkody stają się półprzezroczyste
+                ghostModeActive = true;
+                obstacles.forEach(o => { o.material.transparent = true; o.material.opacity = 0.15; });
+                scene.background.setHex(0x000520);
+                document.getElementById('event-tag').style.color = "#aa88ff";
+
+            } else if (activeEvent === "OVERLOAD") {
+                // 3× więcej przeszkód przez 5s
+                scene.background.setHex(0x1a0000);
+                document.getElementById('event-tag').style.color = "#ff4400";
+                let overloadCount = 0;
+                overloadInterval = setInterval(() => {
+                    if (isGameOver || overloadCount > 20) { clearInterval(overloadInterval); return; }
+                    // Spawn 3 przeszkód na różnych torach
+                    [-laneWidth, 0, laneWidth].forEach(x => {
+                        if (Math.random() > 0.35) {
+                            const g = new THREE.BoxGeometry(1.5, 1.5, 1.5);
+                            const m = new THREE.MeshPhongMaterial({ color: 0xff4400, emissive: 0xaa2200 });
+                            const o = new THREE.Mesh(g, m);
+                            o.position.set(x, 0.75, -180);
+                            scene.add(o); obstacles.push(o);
+                        }
+                    });
+                    overloadCount++;
+                }, 500);
+
+            } else if (activeEvent === "DECOY") {
+                // Fałszywe monety przez 8s
+                scene.background.setHex(0x0a1500);
+                spawnDecoyCoins();
+            }
+
+            const duration = activeEvent === "OVERLOAD" ? 5000 : activeEvent === "DECOY" ? 8000 : 6000;
+            setTimeout(() => {
+                anomaliesSurvivedThisRun++;
+                if (anomaliesSurvivedThisRun >= 3) unlockAchievement('survive_3');
+                endNetworkEvent();
+            }, duration);
+
+            eventInterval = setTimeout(triggerNetworkEvent, Math.random() * 8000 + 10000);
+        }
+
+        function spawnDecoyCoins() {
+            if (activeEvent !== "DECOY" || isGameOver) return;
+            const lanes = [-laneWidth, 0, laneWidth];
+            for (let i = 0; i < 3; i++) {
+                // Fałszywa moneta — czerwonawa, wygląda podobnie ale inny kolor
+                const geo = new THREE.OctahedronGeometry(0.5, 0);
+                const mat = new THREE.MeshPhongMaterial({ color: 0xff4400, emissive: 0x882200, emissiveIntensity: 1.0 });
+                const d = new THREE.Mesh(geo, mat);
+                d.position.set(lanes[Math.floor(Math.random() * 3)], 0.8, -140 - i * 40);
+                scene.add(d);
+                decoyCoins.push(d);
+            }
+        }
+
+        function endNetworkEvent() {
+            if (isLevelCompleting) return;
+            activeEvent = null;
+            currentSpeed = baseSpeed;
+            scene.background.setHex(0x04020a);
+            document.getElementById('event-tag').innerText = "";
+            document.getElementById('alert-overlay').style.display = "none";
+            document.getElementById('canvas-container').style.filter = "none";
+            document.getElementById('invaders-container').innerHTML = "";
+            // LANE_SHIFT cleanup
+            clearInterval(laneShiftInterval);
+            laneOffset = 0;
+            document.getElementById('lane-shift-indicator').style.display = 'none';
+            // GHOST_MODE cleanup
+            if (ghostModeActive) {
+                ghostModeActive = false;
+                obstacles.forEach(o => { o.material.transparent = false; o.material.opacity = 1; });
+            }
+            // OVERLOAD cleanup
+            clearInterval(overloadInterval);
+            // DECOY cleanup
+            decoyCoins.forEach(d => scene.remove(d));
+            decoyCoins = [];
+        }
+
+        function spawnVirusUI() {
+            if (activeEvent !== "MATRIX_INFECTION" || isGameOver) return;
+            const container = document.getElementById('invaders-container');
+            const div = document.createElement('div');
+            div.className = 'invader';
+            div.innerHTML = invaderSVG;
+            div.style.left = Math.random() * 80 + 10 + "vw";
+            div.style.top = Math.random() * 60 + 10 + "vh";
+            
+            div.onclick = function(e) {
+                e.stopPropagation();
+                div.remove();
+                score += 25;
+                document.getElementById('score-val').innerText = score;
+            };
+
+            container.appendChild(div);
+
+            setTimeout(() => {
+                if (container.contains(div)) {
+                    div.remove();
+                    if (!isGameOver) {
+                        if (hasShield) {
+                            hasShield = false;
+                            unlockAchievement('shield_used');
+                            document.getElementById('shield-ui').innerText = "BRAK";
+                        } else {
+                            noHitThisRun = false;
+                            endGame(false);
+                        }
+                    }
+                }
+            }, 2000);
+
+            setTimeout(spawnVirusUI, 1000);
+        }
+
+        function handleKeyDown(e) {
+            if (isGameOver) return;
+            if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") {
+                if (targetX > -laneWidth) targetX -= laneWidth;
+            }
+            if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") {
+                if (targetX < laneWidth) targetX += laneWidth;
+            }
+        }
+
+        function startLevel(speed, target, modeName) {
+            document.querySelectorAll('.menu-overlay').forEach(el => el.style.display = 'none');
+            document.getElementById('ui').style.display = 'block';
+
+            clearAllIntervals();
+            clearInterval(laneShiftInterval);
+            clearInterval(overloadInterval);
+            obstacles.forEach(o => scene.remove(o));
+            coins.forEach(c => scene.remove(c));
+            decoyCoins.forEach(d => scene.remove(d));
+            obstacles = []; coins = []; decoyCoins = [];
+            
+            isLevelCompleting = false;
+            ghostModeActive = false;
+            laneOffset = 0;
+            document.getElementById('lane-shift-indicator').style.display = 'none';
+            document.getElementById('canvas-container').style.filter = 'none';
+            endNetworkEvent();
+
+            // Reset run stats
+            levelStartTime = Date.now();
+            maxComboThisRun = 1;
+            coinsCollectedThisRun = 0;
+            anomaliesSurvivedThisRun = 0;
+            noHitThisRun = true;
+            sessionAchievements = [];
+
+            // Aplikuj daily modifier
+            let finalSpeed = speed;
+            if (isDailyChallenge && dailyModifier) {
+                if (dailyModifier.speedMult) finalSpeed = speed * dailyModifier.speedMult;
+            }
+
+            score = 0; combo = 1;
+            baseSpeed = finalSpeed; currentSpeed = finalSpeed;
+            scoreTarget = target; targetX = 0;
+            
+            player.position.set(0, 0.6, 0);
+            player.rotation.set(0,0,0);
+            trail.material.opacity = 0.4;
+            
+            camera.fov = 65;
+            camera.updateProjectionMatrix();
+
+            isGameOver = false;
+
+            document.getElementById('score-val').innerText = "0";
+            document.getElementById('combo-ui').innerText = "x1";
+            
+            if ((currentLevelNum === 9 || currentLevelNum === 10) && gameMode === "SECTOR") {
+                document.getElementById('target-val').innerText = "SURVIVE (SONG)";
+            } else {
+                document.getElementById('target-val').innerText = target === Infinity ? "∞" : target;
+            }
+            
+            document.getElementById('mode-tag').innerText = modeName;
+            document.getElementById('shield-ui').innerText = hasShield ? "AKTYWNA" : "BRAK";
+
+            spawnObstacle();
+            spawnCoin();
+            eventInterval = setTimeout(triggerNetworkEvent, 6000);
+        }
+
+        function endGame(isVictory) {
+            isGameOver = true;
+            clearAllIntervals();
+            clearInterval(laneShiftInterval);
+            clearInterval(overloadInterval);
+            stopLevelMusic();
+
+            // HIT-STOP przed death screen (tylko przegrana)
+            const showSummary = () => {
+                document.getElementById('ui').style.display = 'none';
+                const summary = document.getElementById('summary-screen');
+                summary.style.display = 'block';
+
+                const elapsed = Math.round((Date.now() - levelStartTime) / 1000);
+                const rank = calcRank(isVictory, elapsed, maxComboThisRun, score, scoreTarget);
+                showRankBadge(rank);
+                checkRunAchievements(isVictory, elapsed);
+                renderSessionAchievements();
+
+                const title = document.getElementById('summary-title');
+                const status = document.getElementById('sum-status');
+                const actionBtn = document.getElementById('btn-action');
+
+                if (isVictory) {
+                    title.innerText = "SEKTOR CZYSZCZONY";
+                    title.style.color = "#00ff66";
+                    title.style.textShadow = "0 0 15px #00ff66";
+                    status.innerText = "KOD INTEGRALNY (SUKCES)";
+                    status.style.color = "#00ff66";
+                    actionBtn.innerText = "NEXT GENERATION";
+                    // Dzienna nagroda
+                    if (isDailyChallenge) {
+                        const reward = window._dailyMod?.reward || 0;
+                        totalCoins += reward;
+                        localStorage.setItem('cyber_coins', totalCoins);
+                        localStorage.setItem('cyber_daily_done', new Date().toDateString());
+                        window._dailyDone = true;
+                        document.getElementById('daily-badge').classList.add('daily-done');
+                        document.getElementById('daily-reward').innerText = '✓ UKOŃCZONO DZIŚ';
+                        isDailyChallenge = false;
+                        dailyModifier = null;
+                    }
+                } else {
+                    title.innerText = "CRASHED!";
+                    title.style.color = "#ff007f";
+                    title.style.textShadow = "0 0 15px #ff007f";
+                    status.innerText = "INTEGRALNOŚĆ PRZERWANA PRZEZ ANALIZATOR";
+                    status.style.color = "#ff007f";
+                    actionBtn.innerText = "REBOOT (PONÓW ETAP)";
+                }
+
+                document.getElementById('sum-score').innerText = score;
+                document.getElementById('sum-combo').innerText = "x" + maxComboThisRun;
+                document.getElementById('sum-time').innerText = elapsed + "s";
+                document.getElementById('sum-cc').innerText = totalCoins;
+                updateMenuCurrency();
+            };
+
+            if (!isVictory) {
+                triggerHitStop(180);
+                setTimeout(showSummary, 200);
+            } else {
+                showSummary();
+            }
+        }
+
+        function clearAllIntervals() {
+            clearTimeout(spawnInterval);
+            clearTimeout(coinSpawnInterval);
+            clearTimeout(eventInterval);
+            clearInterval(laneShiftInterval);
+            clearInterval(overloadInterval);
+        }
+
+        function openLevelsMenu() {
+            document.getElementById('main-menu').style.display = 'none';
+            document.getElementById('levels-menu').style.display = 'block';
+            gameMode = "SECTOR";
+        }
+
+        function openSettings() {
+            document.getElementById('main-menu').style.display = 'none';
+            document.getElementById('settings-menu').style.display = 'block';
+        }
+
+        function openAchievements() {
+            document.querySelectorAll('.menu-overlay').forEach(el => el.style.display = 'none');
+            document.getElementById('achievements-menu').style.display = 'block';
+            renderAchievements();
+        }
+
+        function renderAchievements() {
+            const container = document.getElementById('achievements-list-container');
+            container.innerHTML = "";
+
+            let unlockedCount = 0;
+            const totalCount = Object.keys(ACHIEVEMENTS).length;
+
+            for (const [id, ach] of Object.entries(ACHIEVEMENTS)) {
+                const isUnlocked = unlockedAchievements.includes(id);
+                if (isUnlocked) unlockedCount++;
+                
+                const item = document.createElement('div');
+                item.className = `ach-item-menu ${isUnlocked ? '' : 'locked'}`;
+                
+                // Jeśli zablokowane, pokazujemy kłódkę zamiast oryginalnej ikony
+                const icon = isUnlocked ? ach.icon : '🔒';
+                const nameColor = isUnlocked ? '#ffff00' : '#888';
+
+                item.innerHTML = `
+                    <div class="ach-icon">${icon}</div>
+                    <div class="ach-info">
+                        <div class="ach-name" style="color: ${nameColor};">${ach.name}</div>
+                        <div class="ach-desc">${ach.desc}</div>
+                    </div>
+                `;
+                container.appendChild(item);
+            }
+
+            // Nagłówek z progresem
+            const progressHeader = document.createElement('div');
+            progressHeader.style.cssText = "text-align: center; font-size: 14px; font-weight: bold; color: #00ffcc; margin-bottom: 15px; letter-spacing: 2px;";
+            progressHeader.innerText = `ODBLOKOWANO: ${unlockedCount} / ${totalCount}`;
+            container.prepend(progressHeader);
+        }
+
+        function startInfinityMode() {
+            gameMode = "INFINITY";
+            startLevel(45, Infinity, "TRYB NIESKOŃCZONY");
+        }
+
+        function startSelectedLevel() {
+            const currentLevel = LEVELS_DATA[currentCarouselIndex];
+            currentLevelNum = currentLevel.id;
+            isDailyChallenge = false;
+            dailyModifier = null;
+            document.querySelectorAll('.menu-overlay').forEach(el => el.style.display = 'none');
+            showSectorLoading(currentLevel, () => {
+                playLevelMusic(currentLevelNum);
+                startLevel(currentLevel.speed, currentLevel.target, currentLevel.name);
+            });
+        }
+
+        function openGarage() {
+            document.getElementById('main-menu').style.display = 'none';
+            document.getElementById('garage-menu').style.display = 'block';
+            renderGarage();
+        }
+
+        function backToMain() {
+            document.querySelectorAll('.menu-overlay').forEach(el => el.style.display = 'none');
+            document.getElementById('main-menu').style.display = 'block';
+            updateMenuCurrency();
+        }
+
+        function exitToMenu() {
+            stopLevelMusic(); 
+            document.getElementById('summary-screen').style.display = 'none';
+            document.getElementById('main-menu').style.display = 'block';
+            updateMenuCurrency();
+        }
+
+        function restartCurrentMode() {
+            if (gameMode === "INFINITY") {
+                startInfinityMode();
+            } else {
+                startSelectedLevel();
+            }
+        }
+
+        function renderCarousel() {
+            const container = document.getElementById('level-card-content');
+            const data = LEVELS_DATA[currentCarouselIndex];
+            const isAudioLvl = (data.id === 9 || data.id === 10);
+            
+            container.innerHTML = `
+                <div class="level-name">LVL ${data.id}: ${data.name}</div>
+                <div class="level-difficulty diff-${data.difficulty}">${data.difficulty}</div>
+                <div class="level-stats">
+                    • PRĘDKOŚĆ KANAŁU: ${data.speed} MB/s<br>
+                    • WYMAGANY SCORE: ${isAudioLvl ? "PRZETRWAJ PIOSENKĘ" : data.target}<br>
+                    <span style="font-size:11px; color:#aaa; display:block; margin-top:8px;">${data.desc}</span>
+                </div>
+            `;
+        }
+
+        function nextLevel() {
+            currentCarouselIndex = (currentCarouselIndex + 1) % LEVELS_DATA.length;
+            renderCarousel();
+        }
+
+        function prevLevel() {
+            currentCarouselIndex = (currentCarouselIndex - 1 + LEVELS_DATA.length) % LEVELS_DATA.length;
+            renderCarousel();
+        }
+
+        function updateMenuCurrency() {
+            document.getElementById('menu-cc-count').innerText = totalCoins;
+            document.getElementById('garage-cc-count').innerText = totalCoins;
+        }
+
+        function buyShield() {
+            if (!hasShield && totalCoins >= 50) {
+                totalCoins -= 50;
+                hasShield = true;
+                localStorage.setItem('cyber_coins', totalCoins);
+                updateMenuCurrency();
+                document.getElementById('buy-shield-btn').innerText = "POSIADASZ";
+                document.getElementById('buy-shield-btn').disabled = true;
+            }
+        }
+
+        function renderGarage() {
+            const container = document.getElementById('skins-container');
+            container.innerHTML = "";
+
+            const shieldBtn = document.getElementById('buy-shield-btn');
+            if (hasShield) {
+                shieldBtn.innerText = "POSIADASZ";
+                shieldBtn.disabled = true;
+            } else {
+                shieldBtn.innerText = "KUP [50 CC]";
+                shieldBtn.disabled = totalCoins < 50;
+            }
+
+            SKINS_DATA.forEach(skin => {
+                const isUnlocked = unlockedSkins.includes(skin.id);
+                const isActive = activeSkinId === skin.id;
+                
+                let actionHtml = "";
+                if (isActive) {
+                    actionHtml = `<button class="btn active-skin" disabled>AKTYWNA</button>`;
+                } else if (isUnlocked) {
+                    actionHtml = `<button class="btn" onclick="selectSkin('${skin.id}')">WYBIERZ</button>`;
+                } else {
+                    const canBuy = totalCoins >= skin.price;
+                    actionHtml = `<button class="btn btn-pink" ${canBuy ? '' : 'disabled'} onclick="buySkin('${skin.id}', ${skin.price})">KUP [${skin.price} CC]</button>`;
+                }
+
+                const hexColorStr = "#" + skin.color.toString(16).padStart(6, '0');
+
+                const item = document.createElement('div');
+                item.className = "shop-item";
+                item.innerHTML = `
+                    <div class="skin-preview">
+                        <div class="skin-color-box" style="background-color: ${hexColorStr};"></div>
+                        <span>${skin.name}</span>
+                    </div>
+                    ${actionHtml}
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function buySkin(skinId, price) {
+            if (totalCoins >= price && !unlockedSkins.includes(skinId)) {
+                totalCoins -= price;
+                unlockedSkins.push(skinId);
+                localStorage.setItem('cyber_coins', totalCoins);
+                localStorage.setItem('cyber_unlocked_skins', JSON.stringify(unlockedSkins));
+                
+                // Osiągnięcie przyznawane przy zakupie!
+                unlockAchievement('shopaholic');
+                
+                selectSkin(skinId);
+            }
+        }
+
+        function selectSkin(skinId) {
+            activeSkinId = skinId;
+            const target = SKINS_DATA.find(s => s.id === skinId);
+            if (target) {
+                activeColor = target.color;
+                localStorage.setItem('cyber_active_skin', skinId);
+                
+                player.material.color.setHex(activeColor);
+                player.material.emissive.setHex(activeColor);
+                trail.material.color.setHex(activeColor);
+            }
+            renderGarage();
+            updateMenuCurrency();
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        
+    </script>
+</body>
+</html>
